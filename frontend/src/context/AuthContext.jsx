@@ -1,50 +1,31 @@
-import { createContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "../api/auth";
+import { createContext, useState } from "react";
 
-export const AuthContext = createContext();
+// 1. Create the context
+export const AuthContext = createContext(null);
 
+// 2. AuthProvider component
 export const AuthProvider = ({ children }) => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null); // {id, role, ...}
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user")) || null
+  );
+  const [token, setToken] = useState(localStorage.getItem("token") || null);
 
-  // Load user profile on initial load
-  useEffect(() => {
-    if (token) {
-      axios
-        .get("/profile", { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => setUser(res.data.user))
-        .catch(() => {
-          setUser(null);
-          setToken("");
-          localStorage.removeItem("token");
-        });
-    }
-  }, [token]);
-
-  const login = async (email, password) => {
-    const res = await axios.post("/login", { email, password });
-    const token = res.data.token;
-    setToken(token);
-    localStorage.setItem("token", token);
-
-    // fetch user profile
-    const profileRes = await axios.get("/profile", { headers: { Authorization: `Bearer ${token}` } });
-    setUser(profileRes.data.user);
-
-    return profileRes.data.user;
+  const loginUser = (userData, jwtToken) => {
+    setUser(userData);
+    setToken(jwtToken);
+    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("token", jwtToken);
   };
 
-  const logout = () => {
+  const logoutUser = () => {
     setUser(null);
-    setToken("");
+    setToken(null);
+    localStorage.removeItem("user");
     localStorage.removeItem("token");
-    navigate("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loginUser, logoutUser }}>
       {children}
     </AuthContext.Provider>
   );
